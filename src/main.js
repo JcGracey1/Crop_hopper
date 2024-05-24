@@ -21,7 +21,7 @@ let config = {
     },
     width: window.innerWidth,
     height: window.innerHeight,
-    scene: [Load, Platformer]
+    scene: [Load, Platformer, endScene]
 };
 
 var cursors;

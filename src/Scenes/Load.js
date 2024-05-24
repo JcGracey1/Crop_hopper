@@ -10,6 +10,12 @@ class Load extends Phaser.Scene {
 
         //hay barrel:
         this.load.image('hayBarrel', 'hay_barrel.png');
+        this.load.image('waterCan', 'tile_0026.png');
+        // load background:
+        this.load.image('background', "farm_background.png");
+
+        //load sound:
+        this.load.audio('collectSound', 'impactMetal_medium_003.ogg');
         // Load characters spritesheet
         this.load.atlas("platformer_characters", "tilemap-characters-packed.png", "tilemap-characters-packed.json");
 
@@ -61,6 +67,19 @@ class Load extends Phaser.Scene {
             frames: [
                 { frame: "tile_0007.png" }
             ],
+        });
+
+        this.anims.create({
+            key: 'fly',
+            frames: this.anims.generateFrameNames('platformer_characters', {
+                prefix: "tile_",
+                start: 24,
+                end: 26,
+                suffix: ".png",
+                zeroPad: 4
+            }),
+            frameRate: 5,
+            repeat: -1
         });
 
          // ...and pass to the next Scene

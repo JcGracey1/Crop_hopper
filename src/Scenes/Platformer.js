@@ -24,11 +24,14 @@ class Platformer extends Phaser.Scene {
 
         this.PARTICLE_VELOCITY = 35;
         this.SCALE = 2.0;
-        this.score = 0;
+        //this.score = 0;
+        this.itemCollected = false;
     }
 
 
     create() {
+        //background:
+        this.background = this.add.tileSprite(0, 0, this.cameras.main.width, this.cameras.main.height, 'background').setOrigin(0, 0).setScrollFactor(0);
         // Create a new tilemap game object which uses 18x18 pixel tiles, and is
         // 45 tiles wide and 25 tiles tall.
         this.map = this.add.tilemap("crop-hop-map", 18, 18, 45, 25);
@@ -40,6 +43,8 @@ class Platformer extends Phaser.Scene {
 
         // Create a layer
         this.groundLayer = this.map.createLayer("Base", this.tileset, 0, 0);
+        this.plantsBackground = this.map.createLayer("Background", this.tileset, 0,0);4
+        this.startArea = this.map.createLayer("Start", this.tileset, 0,0);
 
         // Make it collidable
         this.groundLayer.setCollisionByProperty({
@@ -53,16 +58,13 @@ class Platformer extends Phaser.Scene {
         // Phaser docs:
         // https://newdocs.phaser.io/docs/3.80.0/focus/Phaser.Tilemaps.Tilemap-createFromObjects
 
-        // this.coins = this.map.createFromObjects("Objects", {
-        //     name: "coin",
-        //     key: "tilemap_sheet",
-        //     frame: 151
-        // });
 
         // DONE: Add turn into Arcade Physics here
         // Since createFromObjects returns an array of regular Sprites, we need to convert 
         // them into Arcade Physics sprites (STATIC_BODY, so they don't move) 
-        //this.physics.world.enable(this.coins, Phaser.Physics.Arcade.STATIC_BODY);
+        my.sprite.waterCan = this.physics.add.sprite(1050,200, 'waterCan');
+        this.physics.add.collider(my.sprite.waterCan, this.groundLayer);
+        //this.waterCan.setImmovable(true);
 
         // Create a Phaser group out of the array this.coins
         // This will be used for collision detection below.
@@ -76,6 +78,16 @@ class Platformer extends Phaser.Scene {
 
         // Enable collision handling
         this.physics.add.collider(my.sprite.player, this.groundLayer);
+
+        this.collectSound = this.sound.add('collectSound');
+
+        //collision with water can:
+        this.physics.add.overlap(my.sprite.player, my.sprite.waterCan, (player, waterCan) => {
+            waterCan.destroy();
+            this.itemCollected = true;
+            this.collectSound.play();
+            // Optionally, update the game state or add additional logic here
+        }, null, this);
         
 
         my.vfx.coinCollected = this.add.particles(0, 0, "kenny-particles", {
@@ -92,8 +104,13 @@ class Platformer extends Phaser.Scene {
 
         // CODE FOR MOVEABLE OBJECT:
         // Create the object to be pushed
-        this.pushableObject = this.physics.add.sprite(415, 200, 'hayBarrel');
+        this.pushableObject = this.physics.add.sprite(415, 300, 'hayBarrel');
         this.pushableObject.setCollideWorldBounds(true);
+        // Configure the object physics properties
+        this.pushableObject.setImmovable(false); // Allow it to be pushed
+        this.pushableObject.body.setMass(1); // Set mass for realistic pushing behavior
+        this.pushableObject.body.setSize(18, 14);
+        this.pushableObject.body.setOffset(0, 4);
 
         // Enable collision with the ground layer
         this.physics.add.collider(this.pushableObject, this.groundLayer);
@@ -101,24 +118,35 @@ class Platformer extends Phaser.Scene {
         // Enable collision with the player
         this.physics.add.collider(my.sprite.player, this.pushableObject);
 
-        // Configure the object physics properties
-        this.pushableObject.setImmovable(false); // Allow it to be pushed
-        this.pushableObject.body.setMass(10); // Set mass for realistic pushing behavior
-        this.pushableObject.body.setSize(18, 14);
-        this.pushableObject.body.setOffset(0, 4);
+        //Add enemies:
+        my.sprite.enemyOne = this.physics.add.sprite(570,130, "platformer_characters", "tile_0025.png");
+        my.sprite.enemyOne.setCollideWorldBounds(true);
+        my.sprite.enemyOne.body.allowGravity = false;
+        this.physics.add.collider(my.sprite.player, my.sprite.enemyOne);
+        my.sprite.enemyOne.setImmovable(true);
 
+        my.sprite.enemyTwo = this.physics.add.sprite(875,120, "platformer_characters", "tile_0025.png");
+        my.sprite.enemyTwo.setCollideWorldBounds(true);
+        my.sprite.enemyTwo.body.allowGravity = false;
+        this.physics.add.collider(my.sprite.player, my.sprite.enemyTwo);
+        my.sprite.enemyTwo.setImmovable(true); 
 
-        this.scoreText = this.add.text(16, 16, "Score: " + this.score, { fontSize: '16px' });
-        // DONE: Add coin collision handler
-        // Handle collision detection with coins
-        // this.physics.add.overlap(my.sprite.player, this.coinGroup, (obj1, obj2) => {
-        //     my.vfx.coinCollected.emitParticleAt(obj2.x, obj2.y, 10);
-        //     this.score += 10;
-        //     this.scoreText.setText('Score: ' + this.score);
-        //     obj2.destroy(); // remove coin on overlap
-        // });
-    
-        //console.log(this.score);
+        //movement:
+        this.tweens.add({
+            targets: my.sprite.enemyTwo,
+            y: '+=100', // Move down 100 pixels
+            yoyo: true, // Make it go back to the starting position
+            repeat: -1, // Repeat indefinitely
+            ease: 'Sine.easeInOut', // Easing function
+            duration: 2000 // Duration of the tween in milliseconds
+        });
+
+        this.targetZone = this.add.zone(45, 275, 10, 20);
+        this.physics.world.enable(this.targetZone);
+        this.targetZone.body.setAllowGravity(false);
+        this.targetZone.body.moves = false;
+        //check if player is in zone:
+        this.physics.add.overlap(my.sprite.player, this.targetZone, this.playerInZone, null, this);
 
         // set up Phaser-provided cursor key input
         cursors = this.input.keyboard.createCursorKeys();
@@ -163,6 +191,11 @@ class Platformer extends Phaser.Scene {
     }
 
     update() {
+        //background scrolling:
+        this.background.tilePositionX = this.cameras.main.scrollX * 0.2;
+        // bird anim:
+        my.sprite.enemyOne.anims.play('fly', true);
+        my.sprite.enemyTwo.anims.play('fly', true);
         if(cursors.left.isDown) {
             my.sprite.player.setAccelerationX(-this.ACCELERATION);
             my.sprite.player.resetFlip();
@@ -219,4 +252,18 @@ class Platformer extends Phaser.Scene {
             this.scene.restart();
         }
     }
+    resetGame() {
+        // Reset game state when restarting the scene
+        this.init();
+        this.scene.restart(); // This will re-trigger create()
+    }
+
+    playerInZone(player, zone) {
+        //console.log("Player is in the target zone!");
+        if(this.itemCollected == true){
+            this.scene.start("gameOverScene");
+        }
+    }
+    
+    
 }
