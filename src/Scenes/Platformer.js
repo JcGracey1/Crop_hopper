@@ -254,7 +254,7 @@ class Platformer extends Phaser.Scene {
     }
     resetGame() {
         // Reset game state when restarting the scene
-        this.init();
+        //this.init();
         this.scene.restart(); // This will re-trigger create()
     }
 
